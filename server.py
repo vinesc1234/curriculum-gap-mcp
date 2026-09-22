@@ -52,8 +52,24 @@ def get_module(module_id: str) -> dict:
         return {"error": str(exc)}
 
 
-if __name__ == "__main__":
-    mcp.run()
+@mcp.tool()
+def find_gaps(skills: list[str], include_draft: bool = False) -> dict:
+    """Check which of the given skills the catalog actually teaches.
+
+    Each skill is classified as covered (a module has it as a learning
+    objective), partial (only mentioned as secondary content), or uncovered.
+
+    Args:
+        skills: Skill names to check, e.g. ["prompt writing", "agent building"].
+        include_draft: Count modules that are still in draft status.
+    """
+    if not skills:
+        return {"error": "Provide at least one skill to check."}
+    try:
+        return get_catalog().find_gaps(skills, include_draft)
+    except CatalogError as exc:
+        return {"error": str(exc)}
+
 
 @mcp.tool()
 def suggest_sequence(goal_skill: str, audience: str = "", include_draft: bool = False) -> dict:
@@ -72,3 +88,7 @@ def suggest_sequence(goal_skill: str, audience: str = "", include_draft: bool = 
         return get_catalog().suggest_sequence(goal_skill, audience or None, include_draft)
     except CatalogError as exc:
         return {"error": str(exc)}
+
+
+if __name__ == "__main__":
+    mcp.run()

@@ -85,6 +85,8 @@ def _parse_module(path: Path) -> Module:
         status=str(meta.get("status", "published")).strip().lower(),
         source_file=path.name,
     )
+
+
 class Catalog:
     def __init__(self, folder: Path):
         self.folder = folder
@@ -113,6 +115,7 @@ class Catalog:
                         f"{module.source_file}: prerequisite '{prereq}' does not exist"
                     )
         self.modules = found
+
     def get(self, module_id: str) -> dict:
         module = self.modules.get(module_id.strip())
         if module is None:
@@ -153,6 +156,7 @@ class Catalog:
                 })
         results.sort(key=lambda r: (-r["score"], r["id"]))
         return results[:limit]
+
     def find_gaps(self, skills: list[str], include_draft: bool = False) -> dict:
         live = [m for m in self.modules.values()
                 if include_draft or m.status == "published"]
@@ -190,6 +194,7 @@ class Catalog:
             ),
             "draft_modules_included": include_draft,
         }
+
     def suggest_sequence(self, goal_skill: str, audience: str | None = None,
                          include_draft: bool = False) -> dict:
         goal = normalize_skill(goal_skill)
@@ -223,40 +228,8 @@ class Catalog:
                     missing_prereqs.add(prereq)
                     continue
                 stack.append(prereq)
-    def suggest_sequence(self, goal_skill: str, audience: str | None = None,
-                         include_draft: bool = False) -> dict:
-        goal = normalize_skill(goal_skill)
-        live = {m.id: m for m in self.modules.values()
-                if include_draft or m.status == "published"}
 
-        targets = [m for m in live.values() if goal in m.teaches]
-        if not targets:
-            touched_by = [m.id for m in live.values() if goal in m.touches]
-            return {
-                "goal_skill": goal,
-                "path": [],
-                "resolved": False,
-                "reason": (
-                    f"No module teaches '{goal}'."
-                    + (f" It is touched on in: {', '.join(sorted(touched_by))}." if touched_by else "")
-                    + " This is a catalog gap, not a query error."
-                ),
-            }
-
-        needed: set[str] = set()
-        stack = [t.id for t in targets]
-        missing_prereqs: set[str] = set()
-        while stack:
-            mid = stack.pop()
-            if mid in needed:
-                continue
-            needed.add(mid)
-            for prereq in live[mid].prerequisites if mid in live else []:
-                if prereq not in live:
-                    missing_prereqs.add(prereq)
-                    continue
-                stack.append(prereq)
-                remaining = {m: set(p for p in live[m].prerequisites if p in needed) for m in needed}
+        remaining = {m: set(p for p in live[m].prerequisites if p in needed) for m in needed}
         ordered: list[str] = []
         while remaining:
             ready = [m for m, deps in remaining.items() if not deps]
